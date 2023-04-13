@@ -78,6 +78,27 @@ if __name__ == "__main__":
 
         print(f"episode: {e}/{config.episodes}, score: {env.total_profit}, e: {agent.epsilon}")
 
+    # Initialize the validation variables
+    validation_net_worths = []
+    validation_scores = []
+
+    # Validate the model using validation data
+    validation_state = env.reset_validation()
+    done = False
+    while not done:
+        action = agent.act(validation_state)
+        next_state, reward, done, info = env.step_validation(action)
+        validation_state = next_state
+        validation_scores.append(reward)
+        validation_net_worths.append(info['net_worth'])
+
+    # Calculate the average net worth and score during validation
+    average_validation_net_worth = np.mean(validation_net_worths)
+    average_validation_score = np.mean(validation_scores)
+
+    print(f"Average validation net worth: {average_validation_net_worth}")
+    print(f"Average validation score: {average_validation_score}")
+
     # Initialize the Interactive Brokers API
     ib_api = IBApi()
     ib_api.connect("127.0.0.1", config.IB_PORT, clientId=0)
@@ -103,4 +124,3 @@ if __name__ == "__main__":
 
         # Sleep for a specified duration before fetching the next set of real-time data
         time.sleep(60)  # sleep for 1 minute
-

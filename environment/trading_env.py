@@ -4,13 +4,17 @@ import pandas as pd
 from gym import spaces
 
 class TradingEnvironment(gym.Env):
-    def __init__(self, data, initial_balance=10000, window_size=10):
+    def __init__(self, data, initial_balance=10000, window_size=10, validation_split=0.8):
         super(TradingEnvironment, self).__init__()
         
         self.data = data
         self.initial_balance = initial_balance
         self.window_size = window_size
         self.current_step = 0
+        self.validation_split = validation_split
+        self.split_index = int(self.data.shape[0] * self.validation_split)
+        self.train_data = self.data.iloc[:self.split_index]
+        self.validation_data = self.data.iloc[self.split_index:]
 
         self.action_space = spaces.Discrete(3)  # Buy, Sell, Hold
         self.observation_space = spaces.Box(low=0, high=1, shape=(window_size, 6), dtype=np.float32)
@@ -21,11 +25,19 @@ class TradingEnvironment(gym.Env):
         self.net_worth = self.initial_balance
         self.inventory = []
         self.score = 0
-        return self.get_observation()
+        return self.get_observation(self.train_data)
 
-    def get_observation(self):
+    def reset_validation(self):
+        self.current_step = 0
+        self.balance = self.initial_balance
+        self.net_worth = self.initial_balance
+        self.inventory = []
+        self.score = 0
+        return self.get_observation(self.validation_data)
+
+    def get_observation(self, data):
         start = max(0, self.current_step - self.window_size)
-        window = self.data.iloc[start:self.current_step]
+        window = data.iloc[start:self.current_step]
         timestamp_column = 'Date' if 'Date' in window.columns else 'timestamp'
         obs = window.drop(columns=[timestamp_column]).to_numpy()
     
@@ -37,8 +49,14 @@ class TradingEnvironment(gym.Env):
         return obs
 
     def step(self, action):
+        return self._step(action, self.train_data)
+
+    def step_validation(self, action):
+        return self._step(action, self.validation_data)
+
+    def _step(self, action, data):
         self.current_step += 1
-        current_price = self.data.iloc[self.current_step]["Close"]
+        current_price = data.iloc[self.current_step]["Close"]
 
         reward = 0
         if action == 0:  # Buy
@@ -55,10 +73,10 @@ class TradingEnvironment(gym.Env):
 
         self.score += reward
         self.net_worth = self.balance + sum(self.inventory)
-        done = self.net_worth <= 0 or self.current_step >= len(self.data) - 1
+        done = self.net_worth <= 0 or self.current_step >= len(data) - 1
         info = {"net_worth": self.net_worth}
 
-        return self.get_observation(), reward, done, info
+        return self.get_observation(data), reward, done, info
 
     def render(self, mode='human'):
         print(f"Step: {self.current_step}, Net Worth: {self.net_worth}")
