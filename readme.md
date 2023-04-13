@@ -1,58 +1,58 @@
-# AI-Powered Stock Trading Bot
+# Trading Algorithm
 
-This is an AI-powered stock trading bot that uses reinforcement learning and the Interactive Brokers API to execute trades. The bot aims to learn and improve its trading strategy over time.
+This project aims to develop an automated trading bot that uses deep reinforcement learning to execute trades based on real-time stock data, news sentiment, and technical indicators. The bot is designed to work with the Interactive Brokers API, Yahoo Finance API, Bing News API, and OpenAI API.
 
-## Requirements
+## Features
 
-- Python 3.9 or higher
-- Interactive Brokers account with API access
-- Interactive Brokers Gateway installed and running
+- Implements a DQN agent with LSTM neural network architecture for reinforcement learning
+- Trains the model using historical stock data
+- Fetches real-time stock data using Yahoo Finance API
+- Retrieves and processes recent news articles related to the stock using Bing News API
+- Calculates news sentiment scores using OpenAI API
+- Executes trades automatically through the Interactive Brokers API
+- Continuously improves its strategy by retraining based on trade results
 
-## Dependencies
+## Installation and Setup
 
-- ib_insync
-- numpy
-- pandas
-- torch
+1. Clone the repository:
 
-To install the dependencies, run the following command:
+git clone https://github.com/bpegenaute/trading_algo.git
 
-pip install ib_insync numpy pandas torch
+2. Create a virtual environment and activate it:
 
+python3 -m venv venv
+source venv/bin/activate
 
-## Setup
+3. Install the required dependencies:
 
-1. Create a virtual environment and activate it:
+pip install -r requirements.txt
 
-python -m venv venv
-source venv/bin/activate # On Windows, use venv\Scripts\activate
+4. Create a `.env` file in the root directory of the project and add the following keys with appropriate values:
 
+IB_ACCOUNT=<Your Interactive Brokers Account ID>
+IB_PORT=7496
+BING_API_KEY=<Your Bing News API Key>
+OPENAI_API_KEY=<Your OpenAI API Key>
+ALPHA_VANTAGE_API_KEY=<Your Alpha Vantage API Key>
 
-2. Install the required libraries:
+## Running the Trading Bot
 
-pip install ib_insync numpy pandas torch
-
-
-3. Set up the `config.py` file with your Interactive Brokers account information:
-
-
-# Change this line for a paper trading account
-IB_ACCOUNT = "DUxxxxx"
-
-# Change this line for a real account
-# IB_ACCOUNT = "Uxxxxx"
-
-# Port number for IB Gateway
-IB_PORT = 7496
-
-4. Launch the IB Gateway application, log in with your API credentials, and make sure the port number matches the one in the config.py file.
-Running the Trading Bot
-To run the trading bot, execute the following command:
-
+1. Run the `main.py` script to start the trading bot:
 
 python main.py
 
-This will start the training process and connect to the Interactive Brokers API to place trades.
+2. The bot will first train the model using historical stock data and then switch to real-time trading mode, executing trades based on real-time data, news sentiment, and technical indicators.
 
-Disclaimer
-Trading stocks and other assets carry inherent risks. Use this trading bot at your own risk. The performance of the trading strategy is not guaranteed, and you should thoroughly evaluate its effectiveness and understand the associated risks before using it with real funds.# trading_algo
+3. The bot continuously improves its strategy by retraining based on trade results.
+
+## Dependencies
+
+- Python 3.9
+- PyTorch 1.9.1
+- torchvision 0.10.1
+- numpy 1.21.2
+- pandas 1.3.3
+- yfinance 0.1.63
+- ibapi 9.80.20210824
+- requests 2.26.0
+- openai 0.27.0
