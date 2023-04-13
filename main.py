@@ -1,58 +1,106 @@
 import os
-import pandas as pd
-import numpy as np
 import torch
-from config import *
-from agent.environment import TradingEnvironment
-from agent.model.lstm_model import LSTMModel
-from agent.dqn_agent import DQNAgent
-from agent.news_fetcher import fetch_news
-from agent.sentiment import get_sentiment
+import time
+import yfinance as yf
+import numpy as np
+import datetime
+from config import Config
+from dqn_agent import DQNAgent
+from environment import TradingEnvironment
+from news_fetcher import fetch_news
+from sentiment import get_sentiment_score
+from openai_api import generate_text
+from ibapi.client import EClient
+from ibapi.wrapper import EWrapper
+from ibapi.contract import Contract
+from ibapi.order import Order
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+class IBApi(EWrapper, EClient):
+    def __init__(self):
+        EClient.__init__(self, self)
 
-# Create the trading environment
-data = pd.read_csv('AAPL.csv')
-env = TradingEnvironment(data)
+    def error(self, reqId, errorCode, errorString):
+        print(f"Error: {reqId} {errorCode} {errorString}")
 
-# Parameters for the LSTM model
-input_size = 61
-hidden_size = 64
-num_layers = 2
-output_size = 3
+    # Add more methods as needed for the IB API
 
-# Instantiate the LSTM model and the target model
-model = LSTMModel(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, output_size=output_size, device=device)
-target_model = LSTMModel(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers, output_size=output_size, device=device)
+def get_realtime_data(ticker, interval='1m', period='1d'):
+    data = yf.download(ticker, interval=interval, period=period)
+    return data
 
-# Create the DQN agent
-agent = DQNAgent(env, model, target_model, device)
+def preprocess_realtime_data(realtime_data, sentiment_score):
+    # Normalize the data
+    normalized_data = (realtime_data - realtime_data.min()) / (realtime_data.max() - realtime_data.min())
 
-# Training parameters
-n_episodes = 1000
-train_frequency = 10
+    # Reshape the data into the required format (batch_size, sequence_length, input_size)
+    reshaped_data = np.reshape(normalized_data, (1, normalized_data.shape[0], normalized_data.shape[1]))
 
-for e in range(n_episodes):
-    state = env.reset()
-    done = False
-    score = 0
-    
-    while not done:
-        # Fetch the news
-        news_data = fetch_news()
-        # Perform sentiment analysis
-        sentiment_scores = get_sentiment(news_data)
+    # Combine the data with the sentiment score
+    combined_data = np.concatenate((reshaped_data, np.full(reshaped_data.shape, sentiment_score)), axis=2)
 
-        action = agent.act(state, sentiment_scores)
-        next_state, reward, done = env.step(action)
-        agent.memorize(state, action, reward, next_state, done, sentiment_scores)
-        
-        state = next_state
-        score += reward
+    return torch.tensor(combined_data, dtype=torch.float32)
 
-    print(f"episode: {e}/{n_episodes}, score: {score}, e: {agent.epsilon}")
+# Add a function to execute trade based on the predicted action
+def execute_trade(action, ib_api):
+    contract = Contract()
+    contract.symbol = "AAPL"
+    contract.secType = "STK"
+    contract.exchange = "SMART"
+    contract.currency = "USD"
+    contract.primaryExchange = "NASDAQ"
 
-    agent.replay(32)
-    # Retrain the model
-    if e % train_frequency == 0:
-        agent.retrain()
+    order = Order()
+    order.action = "BUY" if action == 1 else "SELL"
+    order.totalQuantity = 100
+    order.orderType = "MKT"
+
+    orderId = 1  # You can use a unique order id for each order
+    ib_api.placeOrder(orderId, contract, order)
+
+if __name__ == "__main__":
+    config = Config()
+    env = TradingEnvironment(config=config)
+    agent = DQNAgent(config=config, state_size=env.observation_space.shape[0], action_size=env.action_space.n)
+
+    # Train the model using historical data
+    for e in range(config.episodes):
+        state = env.reset()
+        state = torch.tensor(state, dtype=torch.float32)
+        done = False
+        while not done:
+            action = agent.act(state)
+            next_state, reward, done = env.step(action)
+            next_state = torch.tensor(next_state, dtype=torch.float32)
+            agent.remember(state, action, reward, next_state, done)
+            state = next_state
+            if len(agent.memory) > config.batch_size:
+                agent.replay(config.batch_size)
+
+        print(f"episode: {e}/{config.episodes}, score: {env.total_profit}, e: {agent.epsilon}")
+
+    # Initialize the Interactive Brokers API
+    ib_api = IBApi()
+    ib_api.connect("127.0.0.1", config.IB_PORT, clientId=0)
+
+    # Switch to the real-time trading mode
+    while True:
+        # Fetch the real-time stock data and news
+        stock_data = get_realtime_data('AAPL')
+        news_data = fetch_news('AAPL')
+
+        # Calculate the sentiment score based on the news data
+        sentiment_score = get_sentiment_score(news_data)
+
+        # Preprocess the stock data and sentiment score for input to the model
+        preprocessed_data = preprocess_realtime_data(stock_data, sentiment_score)
+
+        # Predict the action using the trained model
+        state = torch.tensor(preprocessed_data, dtype=torch.float32)
+        action = agent.act(state)
+
+        # Execute the trade using the Interactive Brokers API
+        execute_trade(action, ib_api)
+
+        # Sleep for a specified duration before fetching the next set of real-time data
+        time.sleep(60)  # sleep for 1 minute
+
