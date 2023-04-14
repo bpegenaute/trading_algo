@@ -20,7 +20,7 @@ git clone https://github.com/bpegenaute/trading_algo.git
 
 2. Create a virtual environment and activate it:
 
-python3 -m venv venv
+python3.9 -m venv venv
 source venv/bin/activate
 
 3. Install the required dependencies:
@@ -45,7 +45,7 @@ python main.py
 
 3. The bot continuously improves its strategy by retraining based on trade results.
 
-## Dependencies
+## Dependencies // See requirements.txt for latest versions
 
 - Python 3.9
 - PyTorch 1.9.1
@@ -56,3 +56,4 @@ python main.py
 - ibapi 9.80.20210824
 - requests 2.26.0
 - openai 0.27.0
+- gym ##check version 

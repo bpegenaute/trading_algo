@@ -6,10 +6,9 @@ import numpy as np
 import datetime
 from config import Config
 from dqn_agent import DQNAgent
-from environment import TradingEnvironment
+from environment.trading_env import TradingEnvironment
 from news_fetcher import fetch_news
 from sentiment import get_sentiment_score
-from openai_api import generate_text
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
