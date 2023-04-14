@@ -39,6 +39,10 @@ def preprocess_realtime_data(realtime_data, sentiment_score):
 
     return torch.tensor(combined_data, dtype=torch.float32)
 
+def get_historical_data(ticker, start_date, end_date):
+    data = yf.download(ticker, start=start_date, end=end_date)
+    return data
+
 # Add a function to execute trade based on the predicted action
 def execute_trade(action, ib_api):
     contract = Contract()
@@ -58,7 +62,8 @@ def execute_trade(action, ib_api):
 
 if __name__ == "__main__":
     config = Config()
-    env = TradingEnvironment(config=config)
+    historical_data = get_historical_data('AAPL', '2020-01-01', '2021-01-01')
+    env = TradingEnvironment(data=historical_data, initial_balance=config.initial_balance, window_size=config.window_size)
     agent = DQNAgent(config=config, state_size=env.observation_space.shape[0], action_size=env.action_space.n)
 
     # Train the model using historical data
