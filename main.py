@@ -36,7 +36,8 @@ def preprocess_realtime_data(realtime_data, sentiment_score):
     reshaped_data = np.reshape(normalized_data, (1, normalized_data.shape[0], normalized_data.shape[1]))
 
     # Combine the data with the sentiment score
-    combined_data = np.concatenate((reshaped_data, np.full(reshaped_data.shape, sentiment_score)), axis=2)
+    sentiment_data = np.full(reshaped_data.shape[:-1] + (1,), sentiment_score)
+    combined_data = np.concatenate((reshaped_data, sentiment_data), axis=2)
 
     return torch.tensor(combined_data, dtype=torch.float32)
 
@@ -85,16 +86,14 @@ if __name__ == "__main__":
         device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     )
 
-
-
     # Train the model using historical data
     for e in range(config.episodes):
         state = env.reset()
         state = torch.tensor(state, dtype=torch.float32)
         done = False
         while not done:
-            action = agent.act(state)
-            next_state, reward, done, _ = env.step(action)
+            action = agent.act(state, config.action_size)
+            next_state, reward, done, sentiment_scores = env.step(action)
             next_state = torch.tensor(next_state, dtype=torch.float32)
             agent.memorize(state, action, reward, next_state, done)
             state = next_state
@@ -147,7 +146,7 @@ if __name__ == "__main__":
 
         # Predict the action using the trained model
         state = torch.tensor(preprocessed_data, dtype=torch.float32)
-        action = agent.act(state)
+        action = agent.act(state, config.action_size)
 
         # Execute the trade using the Interactive Brokers API
         execute_trade(action, ib_api)

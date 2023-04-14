@@ -7,12 +7,12 @@ def analyze_sentiment(text):
 def get_sentiment_score(text):
     prompt = f"Sentiment score of the following text: '{text}'.\n\nScore:"
     response = openai.Completion.create(
-        engine="text-davinci-002",
+        engine="gpt-3.5-turbo",
         prompt=prompt,
-        max_tokens=3,
+        max_tokens=4097,
         n=1,
         stop=None,
-        temperature=0.7,
+        temperature=0,
     )
     score = float(response.choices[0].text.strip())
     return scores

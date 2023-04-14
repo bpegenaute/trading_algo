@@ -22,5 +22,5 @@ class Config:
         self.BING_API_KEY = os.getenv("BING_API_KEY")
         self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
-        self.state_size = 6
+        self.state_size = 7  # 6 stock data features + 1 sentiment score
         self.action_size = 3
