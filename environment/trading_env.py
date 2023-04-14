@@ -2,6 +2,11 @@ import gym
 import numpy as np
 import pandas as pd
 from gym import spaces
+from sentiment import get_sentiment_score
+from config import Config
+from news_fetcher import fetch_news
+
+config = Config()
 
 class TradingEnvironment(gym.Env):
     def __init__(self, data, initial_balance=10000, window_size=10, validation_split=0.8):
@@ -19,13 +24,40 @@ class TradingEnvironment(gym.Env):
         self.action_space = spaces.Discrete(3)  # Buy, Sell, Hold
         self.observation_space = spaces.Box(low=0, high=1, shape=(window_size, 6), dtype=np.float32)
 
+    def _get_sentiment_scores(self):
+        api_key = config.BING_API_KEY
+        news_data = fetch_news(api_key, f'AAPL stock news')
+        text_data = [article['name'] for article in news_data['value']]
+        sentiment_scores = [get_sentiment_score(text) for text in text_data]
+        return sentiment_scores
+
+    def _get_state(self, step):
+        start = max(0, step - self.window_size)
+        window = self.train_data.iloc[start:step]
+
+        obs = window.to_numpy()
+
+        # Pad the observation with zeros if it's smaller than the window_size
+        pad_size = self.window_size - obs.shape[0]
+        if pad_size > 0:
+            obs = np.pad(obs, ((pad_size, 0), (0, 0)), mode='constant', constant_values=0)
+
+        return obs
+
     def reset(self):
-        self.current_step = 0
-        self.balance = self.initial_balance
-        self.net_worth = self.initial_balance
-        self.inventory = []
-        self.score = 0
-        return self.get_observation(self.train_data)
+        self.current_step = self.window_size
+        self.done = False
+        self.profit = 0
+        self.net_worths = [self.initial_balance]
+        self.trades = []
+        self.position = None
+        self.position_price = None
+        self.sentiment_scores = self._get_sentiment_scores()
+
+        state = self._get_state(self.current_step)
+        sentiment_score = self.sentiment_scores[self.current_step - self.window_size]
+
+        return state, sentiment_score
 
     def reset_validation(self):
         self.current_step = 0
@@ -49,7 +81,8 @@ class TradingEnvironment(gym.Env):
         return obs
 
     def step(self, action):
-        return self._step(action, self.train_data)
+        next_state = self._get_state(self.current_step)
+        return next_state, reward, self.done
 
     def step_validation(self, action):
         return self._step(action, self.validation_data)

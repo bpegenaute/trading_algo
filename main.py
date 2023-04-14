@@ -88,13 +88,22 @@ if __name__ == "__main__":
 
     # Train the model using historical data
     for e in range(config.episodes):
-        state = env.reset()
-        state = torch.tensor(state, dtype=torch.float32)
+        state, sentiment_score = env.reset()
+        state = torch.tensor(np.c_((state, sentiment_score)), dtype=torch.float32)
         done = False
         while not done:
             action = agent.act(state, config.action_size)
-            next_state, reward, done, sentiment_scores = env.step(action)
-            next_state = torch.tensor(next_state, dtype=torch.float32)
+            
+            # Fetch the news and calculate sentiment score for the current step
+            api_key = config.BING_API_KEY
+            news_data = fetch_news(api_key, f'AAPL stock news')
+            text_data = [article['name'] for article in news_data['value']]
+            sentiment_scores = [get_sentiment_score(text) for text in text_data]
+            sentiment_score = np.mean(sentiment_scores)
+
+            next_state, reward, done, _ = env.step(action)
+            next_state = torch.tensor(np.concatenate((next_state, [sentiment_score])), dtype=torch.float32)
+            
             agent.memorize(state, action, reward, next_state, done)
             state = next_state
             if len(agent.memory) > config.batch_size:
@@ -111,7 +120,17 @@ if __name__ == "__main__":
     done = False
     while not done:
         action = agent.act(validation_state)
+        
+        # Fetch the news and calculate sentiment score for the current step
+        api_key = config.BING_API_KEY
+        news_data = fetch_news(api_key, f'AAPL stock news')
+        text_data = [article['name'] for article in news_data['value']]
+        sentiment_scores = [get_sentiment_score(text) for text in text_data]
+        sentiment_score = np.mean(sentiment_scores)
+
         next_state, reward, done, info = env.step_validation(action)
+        next_state = torch.tensor(np.concatenate((next_state, [sentiment_score])), dtype=torch.float32)
+        
         validation_state = next_state
         validation_scores.append(reward)
         validation_net_worths.append(info['net_worth'])
