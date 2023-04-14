@@ -88,9 +88,12 @@ if __name__ == "__main__":
 
     # Train the model using historical data
     for e in range(config.episodes):
-        state, sentiment_score = env.reset()
-        state = torch.tensor(np.c_((state, sentiment_score)), dtype=torch.float32)
+        state = env.reset()
+        sentiment_scores = np.array(state[:-1])
+        sentiment_score = sentiment_scores.mean()
+        total_profit = 0
         done = False
+
         while not done:
             action = agent.act(state, config.action_size)
             
