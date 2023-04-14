@@ -166,7 +166,7 @@ if __name__ == "__main__":
 
     # Initialize the Interactive Brokers API
     ib_api = IBApi()
-        ib_api.connect("127.0.0.1", config.IB_PORT, clientId=0)
+    ib_api.connect("127.0.0.1", config.IB_PORT, clientId=0)
 
     # Switch to the real-time trading mode
     print("Starting real-time trading")
