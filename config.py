@@ -5,7 +5,7 @@ load_dotenv()
 
 class Config:
     def __init__(self):
-        self.episodes = 1000
+        self.episodes = 1
         self.window_size = 10
         self.batch_size = 32
         self.memory_capacity = 1000000

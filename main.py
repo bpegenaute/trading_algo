@@ -102,7 +102,6 @@ if __name__ == "__main__":
             # Fetch the news and calculate sentiment score for the current step
             api_key = config.BING_API_KEY
             news_data = fetch_news(api_key, f'AAPL stock news')
-            print(f"Fetched news: {news_data}")
 
             text_data = [article['name'] for article in news_data['value']]
             sentiment_scores = [get_sentiment_score(text) for text in text_data]
@@ -139,7 +138,6 @@ if __name__ == "__main__":
         # Fetch the news and calculate sentiment score for the current step
         api_key = config.BING_API_KEY
         news_data = fetch_news(api_key, f'AAPL stock news')
-        print(f"Fetched news: {news_data}")
 
         text_data = [article['name'] for article in news_data['value']]
         sentiment_scores = [get_sentiment_score(text) for text in text_data]
@@ -177,7 +175,6 @@ if __name__ == "__main__":
 
         api_key = config.BING_API_KEY
         news_data = fetch_news(api_key, f'AAPL stock news')
-        print(f"Fetched news: {news_data}")
 
         # Extract relevant text (e.g., news headlines) from fetched news articles
         text_data = [article['name'] for article in news_data['value']]
