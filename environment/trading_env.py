@@ -38,14 +38,14 @@ class TradingEnvironment(gym.Env):
     def get_observation(self, data):
         start = max(0, self.current_step - self.window_size)
         window = data.iloc[start:self.current_step]
-        timestamp_column = 'Date' if 'Date' in window.columns else 'timestamp'
-        obs = window.drop(columns=[timestamp_column]).to_numpy()
-    
+        
+        obs = window.to_numpy()
+
         # Pad the observation with zeros if it's smaller than the window_size
         pad_size = self.window_size - obs.shape[0]
         if pad_size > 0:
             obs = np.pad(obs, ((pad_size, 0), (0, 0)), mode='constant', constant_values=0)
-    
+
         return obs
 
     def step(self, action):

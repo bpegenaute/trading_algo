@@ -23,12 +23,12 @@ class DQNAgent:
         self.criterion = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-    def act(self, state, sentiment_scores):
+    def act(self, state):
         if np.random.rand() <= self.epsilon:
-            return random.randrange(self.env.action_space.n)
+            return random.randrange(self.model.action_size)
 
         state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(self.device)
-        sentiment_tensor = torch.tensor(sentiment_scores, dtype=torch.float32).unsqueeze(0).to(self.device)
+        sentiment_tensor = torch.tensor(dtype=torch.float32).unsqueeze(0).to(self.device)
         act_values = self.model(torch.cat((state_tensor, sentiment_tensor), dim=2))
         return torch.argmax(act_values).item()
 

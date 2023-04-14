@@ -94,9 +94,9 @@ if __name__ == "__main__":
         done = False
         while not done:
             action = agent.act(state)
-            next_state, reward, done = env.step(action)
+            next_state, reward, done, _ = env.step(action)
             next_state = torch.tensor(next_state, dtype=torch.float32)
-            agent.remember(state, action, reward, next_state, done)
+            agent.memorize(state, action, reward, next_state, done)
             state = next_state
             if len(agent.memory) > config.batch_size:
                 agent.replay(config.batch_size)
@@ -132,10 +132,15 @@ if __name__ == "__main__":
     while True:
         # Fetch the real-time stock data and news
         stock_data = get_realtime_data('AAPL')
-        news_data = fetch_news('AAPL')
+        api_key = config.BING_API_KEY
+        news_data = fetch_news(api_key, f'AAPL stock news')
 
-        # Calculate the sentiment score based on the news data
-        sentiment_score = get_sentiment_score(news_data)
+        # Extract relevant text (e.g., news headlines) from fetched news articles
+        text_data = [article['name'] for article in news_data['value']]
+
+        # Calculate the sentiment scores and their mean for the fetched news articles
+        sentiment_scores = [get_sentiment_score(text) for text in text_data]
+        sentiment_score = np.mean(sentiment_scores)
 
         # Preprocess the stock data and sentiment score for input to the model
         preprocessed_data = preprocess_realtime_data(stock_data, sentiment_score)
