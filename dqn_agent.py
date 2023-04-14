@@ -4,17 +4,17 @@ import torch
 from collections import deque
 
 class DQNAgent:
-    def __init__(self, config, state_size, action_size, model, target_model, device):
+    def __init__(self, state_size, action_size, memory_capacity, gamma, epsilon, epsilon_min, epsilon_decay, learning_rate, model, target_model, device):
         self.model = model
         self.target_model = target_model
         self.device = device
-        self.memory = deque(maxlen=config.memory_capacity)
+        self.memory = deque(maxlen=memory_capacity)
 
-        self.gamma = config.gamma
-        self.epsilon = config.epsilon_start
-        self.epsilon_min = config.epsilon_end
-        self.epsilon_decay = config.epsilon_decay
-        self.learning_rate = config.learning_rate
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.epsilon_min = epsilon_min
+        self.epsilon_decay = epsilon_decay
+        self.learning_rate = learning_rate
 
         self.model.to(device)
         self.target_model.to(device)

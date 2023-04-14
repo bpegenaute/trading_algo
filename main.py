@@ -13,6 +13,7 @@ from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
 from ibapi.order import Order
+from dqn_model import DQNModel
 
 class IBApi(EWrapper, EClient):
     def __init__(self):
@@ -64,7 +65,27 @@ if __name__ == "__main__":
     config = Config()
     historical_data = get_historical_data('AAPL', '2020-01-01', '2021-01-01')
     env = TradingEnvironment(data=historical_data, initial_balance=config.initial_balance, window_size=config.window_size)
-    agent = DQNAgent(config=config, state_size=env.observation_space.shape[0], action_size=env.action_space.n)
+
+    # Instantiate the DQN model and its target model
+    model = DQNModel(state_size=config.state_size, action_size=config.action_size)
+    target_model = DQNModel(state_size=config.state_size, action_size=config.action_size)
+
+    # Instantiate the DQNAgent with the appropriate arguments
+    agent = DQNAgent(
+        state_size=config.state_size,
+        action_size=config.action_size,
+        memory_capacity=config.memory_capacity,
+        gamma=config.gamma,
+        epsilon=config.epsilon_start,
+        epsilon_min=config.epsilon_min,
+        epsilon_decay=config.epsilon_decay,
+        learning_rate=config.learning_rate,
+        model=model,
+        target_model=target_model,
+        device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+    )
+
+
 
     # Train the model using historical data
     for e in range(config.episodes):
