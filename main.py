@@ -94,25 +94,35 @@ if __name__ == "__main__":
         total_profit = 0
         done = False
 
+        print(f"Starting training episode {e + 1}")
+
         while not done:
             action = agent.act(state, config.action_size)
-            
+
             # Fetch the news and calculate sentiment score for the current step
             api_key = config.BING_API_KEY
             news_data = fetch_news(api_key, f'AAPL stock news')
+            print(f"Fetched news: {news_data}")
+
             text_data = [article['name'] for article in news_data['value']]
             sentiment_scores = [get_sentiment_score(text) for text in text_data]
             sentiment_score = np.mean(sentiment_scores)
 
+            print(f"Sentiment scores: {sentiment_scores}")
+            print(f"Average sentiment score: {sentiment_score}")
+
             next_state, reward, done, _ = env.step(action)
-            next_state = torch.tensor(np.concatenate((next_state, [sentiment_score])), dtype=torch.float32)
-            
+            next_state_with_sentiment = np.hstack((next_state, np.full((next_state.shape[0], 1), sentiment_score)))
+            next_state = torch.tensor(next_state_with_sentiment, dtype=torch.float32)
+
             agent.memorize(state, action, reward, next_state, done)
             state = next_state
             if len(agent.memory) > config.batch_size:
                 agent.replay(config.batch_size)
 
-        print(f"episode: {e}/{config.episodes}, score: {env.total_profit}, e: {agent.epsilon}")
+            print(f"Training trade: Action: {action}, Reward: {reward}")
+
+        print(f"End of training episode {e + 1}: Total profit: {env.total_profit}, Epsilon: {agent.epsilon}")
 
     # Initialize the validation variables
     validation_net_worths = []
@@ -121,22 +131,31 @@ if __name__ == "__main__":
     # Validate the model using validation data
     validation_state = env.reset_validation()
     done = False
+    print("Starting validation")
+
     while not done:
         action = agent.act(validation_state)
-        
+
         # Fetch the news and calculate sentiment score for the current step
         api_key = config.BING_API_KEY
         news_data = fetch_news(api_key, f'AAPL stock news')
+        print(f"Fetched news: {news_data}")
+
         text_data = [article['name'] for article in news_data['value']]
         sentiment_scores = [get_sentiment_score(text) for text in text_data]
         sentiment_score = np.mean(sentiment_scores)
 
+        print(f"Sentiment scores: {sentiment_scores}")
+        print(f"Average sentiment score: {sentiment_score}")
+
         next_state, reward, done, info = env.step_validation(action)
         next_state = torch.tensor(np.concatenate((next_state, [sentiment_score])), dtype=torch.float32)
-        
+
         validation_state = next_state
         validation_scores.append(reward)
         validation_net_worths.append(info['net_worth'])
+
+        print(f"Validation trade: Action: {action}, Reward: {reward}")
 
     # Calculate the average net worth and score during validation
     average_validation_net_worth = np.mean(validation_net_worths)
@@ -147,14 +166,18 @@ if __name__ == "__main__":
 
     # Initialize the Interactive Brokers API
     ib_api = IBApi()
-    ib_api.connect("127.0.0.1", config.IB_PORT, clientId=0)
+        ib_api.connect("127.0.0.1", config.IB_PORT, clientId=0)
 
     # Switch to the real-time trading mode
+    print("Starting real-time trading")
     while True:
         # Fetch the real-time stock data and news
         stock_data = get_realtime_data('AAPL')
+        print(f"Real-time stock data: {stock_data}")
+
         api_key = config.BING_API_KEY
         news_data = fetch_news(api_key, f'AAPL stock news')
+        print(f"Fetched news: {news_data}")
 
         # Extract relevant text (e.g., news headlines) from fetched news articles
         text_data = [article['name'] for article in news_data['value']]
@@ -163,12 +186,17 @@ if __name__ == "__main__":
         sentiment_scores = [get_sentiment_score(text) for text in text_data]
         sentiment_score = np.mean(sentiment_scores)
 
+        print(f"Sentiment scores: {sentiment_scores}")
+        print(f"Average sentiment score: {sentiment_score}")
+
         # Preprocess the stock data and sentiment score for input to the model
         preprocessed_data = preprocess_realtime_data(stock_data, sentiment_score)
 
         # Predict the action using the trained model
         state = torch.tensor(preprocessed_data, dtype=torch.float32)
         action = agent.act(state, config.action_size)
+
+        print(f"Predicted action: {action}")
 
         # Execute the trade using the Interactive Brokers API
         execute_trade(action, ib_api)

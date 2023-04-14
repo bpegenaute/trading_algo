@@ -24,6 +24,10 @@ class TradingEnvironment(gym.Env):
         self.action_space = spaces.Discrete(3)  # Buy, Sell, Hold
         self.observation_space = spaces.Box(low=0, high=1, shape=(window_size, 6), dtype=np.float32)
 
+        self.inventory = []
+        self.score = 0
+        self.balance = self.initial_balance
+
     def _get_sentiment_scores(self):
         api_key = config.BING_API_KEY
         news_data = fetch_news(api_key, f'AAPL stock news')
@@ -81,8 +85,7 @@ class TradingEnvironment(gym.Env):
         return obs
 
     def step(self, action):
-        next_state = self._get_state(self.current_step)
-        return next_state, reward, self.done
+        return self._step(action, self.train_data)  # Call _step with the train_data
 
     def step_validation(self, action):
         return self._step(action, self.validation_data)
