@@ -27,10 +27,13 @@ class DQNAgent:
         if np.random.rand() <= self.epsilon:
             return random.randrange(action_size)
 
-        state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(self.device)
-        sentiment_tensor = torch.tensor(dtype=torch.float32).unsqueeze(0).to(self.device)
-        act_values = self.model(torch.cat((state_tensor, sentiment_tensor), dim=2))
+        print("State:", state)
+
+        state_tensor = torch.tensor(state[:-1], dtype=torch.float32).unsqueeze(0).to(self.device)
+        sentiment_tensor = torch.tensor([state[-1]], dtype=torch.float32).unsqueeze(0).to(self.device)
+        act_values = self.model(torch.cat((state_tensor, sentiment_tensor), dim=1))
         return torch.argmax(act_values).item()
+
 
     def memorize(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))

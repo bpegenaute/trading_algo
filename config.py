@@ -5,10 +5,10 @@ load_dotenv()
 
 class Config:
     def __init__(self):
-        self.episodes = 1
-        self.window_size = 10
-        self.batch_size = 32
-        self.memory_capacity = 1000000
+        self.episodes = 2
+        self.window_size = 2
+        self.batch_size = 2
+        self.memory_capacity = 2
         self.epsilon_min = 0.01
         self.epsilon_start = 1.0
         self.epsilon_end = 0.01
