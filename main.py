@@ -86,6 +86,15 @@ if __name__ == "__main__":
         device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
     )
 
+    # Add filepaths for the main model and target model weights
+    main_model_save_filepath = "main_model_weights.pth"
+    target_model_save_filepath = "target_model_weights.pth"
+
+    # Load the saved model weights if they exist
+    if os.path.exists(main_model_save_filepath) and os.path.exists(target_model_save_filepath):
+        agent.load_model_weights(main_model_save_filepath, target_model_save_filepath)
+        print(f"Loaded saved model weights from {main_model_save_filepath} and {target_model_save_filepath}")
+
     # Train the model using historical data
     for e in range(config.episodes):
         state = env.reset()
@@ -122,6 +131,13 @@ if __name__ == "__main__":
             print(f"Training trade: Action: {action}, Reward: {reward}")
 
         print(f"End of training episode {e + 1}: Total profit: {env.total_profit}, Epsilon: {agent.epsilon}")
+
+    # Save the trained model weights
+    model_weights_path = "model_weights.pth"
+    agent.save_model_weights(model_weights_path)
+
+    # Load the saved model weights
+    agent.load_model_weights(model_weights_path)
 
     # Initialize the validation variables
     validation_net_worths = []

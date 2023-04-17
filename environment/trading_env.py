@@ -25,14 +25,17 @@ class TradingEnvironment(gym.Env):
         self.observation_space = spaces.Box(low=0, high=1, shape=(window_size, 6), dtype=np.float32)
 
         self.inventory = []
-        self.score = 0
+        self.total_profit = 0
         self.balance = self.initial_balance
 
     def _get_sentiment_scores(self):
         api_key = config.BING_API_KEY
         news_data = fetch_news(api_key, f'AAPL stock news')
-        text_data = [article['name'] for article in news_data['value']]
-        sentiment_scores = [get_sentiment_score(text) for text in text_data]
+        if news_data is not None:
+            text_data = [article['name'] for article in news_data['value']]
+            sentiment_scores = [get_sentiment_score(text) for text in text_data]
+        else:
+            sentiment_scores = []
         return sentiment_scores
 
     def _get_state(self, step):
@@ -59,9 +62,13 @@ class TradingEnvironment(gym.Env):
         self.sentiment_scores = self._get_sentiment_scores()
 
         state = self._get_state(self.current_step)
-        sentiment_score = self.sentiment_scores[self.current_step - self.window_size]
+        if len(self.sentiment_scores) > 0:
+            sentiment_score = self.sentiment_scores[self.current_step - self.window_size]
+        else:
+            sentiment_score = 0  # If sentiment_scores is empty, assign a default value
 
         return state, sentiment_score
+
 
     def reset_validation(self):
         self.current_step = 0
@@ -107,7 +114,7 @@ class TradingEnvironment(gym.Env):
         else:
             pass  # Hold
 
-        self.score += reward
+        self.total_profit += reward
         self.net_worth = self.balance + sum(self.inventory)
         done = self.net_worth <= 0 or self.current_step >= len(data) - 1
         info = {"net_worth": self.net_worth}

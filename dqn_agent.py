@@ -16,6 +16,8 @@ class DQNAgent:
         self.epsilon_decay = epsilon_decay
         self.learning_rate = learning_rate
 
+        self.action_size = action_size  # Add this line
+
         self.model.to(device)
         self.target_model.to(device)
         self.target_model.load_state_dict(self.model.state_dict())
@@ -23,9 +25,9 @@ class DQNAgent:
         self.criterion = torch.nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-    def act(self, state, action_size):
+    def act(self, state):
         if np.random.rand() <= self.epsilon:
-            return random.randrange(action_size)
+            return random.randrange(self.action_size)  # Use self.action_size instead of action_size
 
         print("State:", state)
 
@@ -61,4 +63,11 @@ class DQNAgent:
             self.epsilon *= self.epsilon_decay
 
     def retrain(self):
+        self.target_model.load_state_dict(self.model.state_dict())
+
+    def save_model_weights(self, filepath):
+        torch.save(self.model.state_dict(), filepath)
+
+    def load_model_weights(self, filepath):
+        self.model.load_state_dict(torch.load(filepath))
         self.target_model.load_state_dict(self.model.state_dict())
