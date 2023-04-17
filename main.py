@@ -14,6 +14,7 @@ from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
 from ibapi.order import Order
 from dqn_model import DQNModel
+from datetime import date
 
 class IBApi(EWrapper, EClient):
     def __init__(self):
@@ -64,7 +65,7 @@ def execute_trade(action, ib_api):
 
 if __name__ == "__main__":
     config = Config()
-    historical_data = get_historical_data('AAPL', '2020-01-01', '2021-01-01')
+    historical_data = get_historical_data('AAPL', '2008-01-01', date.today())
     env = TradingEnvironment(data=historical_data, initial_balance=config.initial_balance, window_size=config.window_size)
 
     # Instantiate the DQN model and its target model
@@ -97,16 +98,22 @@ if __name__ == "__main__":
         print(f"Starting training episode {e + 1}")
 
         while not done:
-            action = agent.act(state, config.action_size)
+            action = agent.act(state, sentiment_score)
 
             # Fetch the news and calculate sentiment score for the current step
             api_key = config.BING_API_KEY
             news_data = fetch_news(api_key, f'AAPL stock news')
 
-            text_data = [article['name'] for article in news_data['value']]
-            sentiment_scores = [get_sentiment_score(text) for text in text_data]
-            sentiment_score = np.mean(sentiment_scores)
+            if news_data is not None and 'value' in news_data:
+                text_data = [article['name'] for article in news_data['value']]
+            else:
+                print("Error: Unable to fetch news data.")
+                text_data = []
 
+            sentiment_scores = [get_sentiment_score(text) for text in text_data]
+            sentiment_score = np.mean(sentiment_scores) if len(sentiment_scores) > 0 and not np.isnan(sentiment_scores).any() else 0.0
+
+            print(f"News being analysed: {text_data}")
             print(f"Sentiment scores: {sentiment_scores}")
             print(f"Average sentiment score: {sentiment_score}")
 
@@ -133,16 +140,21 @@ if __name__ == "__main__":
     print("Starting validation")
 
     while not done:
-        action = agent.act(validation_state)
+        action = agent.act(validation_state, sentiment_score)
 
         # Fetch the news and calculate sentiment score for the current step
         api_key = config.BING_API_KEY
         news_data = fetch_news(api_key, f'AAPL stock news')
 
-        text_data = [article['name'] for article in news_data['value']]
+        if news_data is not None and 'value' in news_data:
+            text_data = [article['name'] for article in news_data['value']]
+        else:
+            print("Error: Unable to fetch news data.")
+            text_data = []
         sentiment_scores = [get_sentiment_score(text) for text in text_data]
-        sentiment_score = np.mean(sentiment_scores)
+        sentiment_score = np.mean(sentiment_scores) if len(sentiment_scores) > 0 and not np.isnan(sentiment_scores).any() else 0.0
 
+        print(f"News being analysed: {text_data}")
         print(f"Sentiment scores: {sentiment_scores}")
         print(f"Average sentiment score: {sentiment_score}")
 
@@ -177,11 +189,15 @@ if __name__ == "__main__":
         news_data = fetch_news(api_key, f'AAPL stock news')
 
         # Extract relevant text (e.g., news headlines) from fetched news articles
-        text_data = [article['name'] for article in news_data['value']]
+        if news_data is not None and 'value' in news_data:
+            text_data = [article['name'] for article in news_data['value']]
+        else:
+            print("Error: Unable to fetch news data.")
+            text_data = []
 
         # Calculate the sentiment scores and their mean for the fetched news articles
         sentiment_scores = [get_sentiment_score(text) for text in text_data]
-        sentiment_score = np.mean(sentiment_scores)
+        sentiment_score = np.mean(sentiment_scores) if len(sentiment_scores) > 0 and not np.isnan(sentiment_scores).any() else 0.0
 
         print(f"Sentiment scores: {sentiment_scores}")
         print(f"Average sentiment score: {sentiment_score}")
@@ -191,7 +207,7 @@ if __name__ == "__main__":
 
         # Predict the action using the trained model
         state = torch.tensor(preprocessed_data, dtype=torch.float32)
-        action = agent.act(state, config.action_size)
+        action = agent.act(state, sentiment_score)
 
         print(f"Predicted action: {action}")
 
