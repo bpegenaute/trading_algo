@@ -31,8 +31,11 @@ class TradingEnvironment(gym.Env):
     def _get_sentiment_scores(self):
         api_key = config.BING_API_KEY
         news_data = fetch_news(api_key, f'AAPL stock news')
-        text_data = [article['name'] for article in news_data['value']]
-        sentiment_scores = [get_sentiment_score(text) for text in text_data]
+        if news_data is not None:
+            text_data = [article['name'] for article in news_data['value']]
+            sentiment_scores = [get_sentiment_score(text) for text in text_data]
+        else:
+            sentiment_scores = []
         return sentiment_scores
 
     def _get_state(self, step):
@@ -59,7 +62,10 @@ class TradingEnvironment(gym.Env):
         self.sentiment_scores = self._get_sentiment_scores()
 
         state = self._get_state(self.current_step)
-        sentiment_score = self.sentiment_scores[self.current_step - self.window_size]
+        if len(self.sentiment_scores) > 0:
+            sentiment_score = self.sentiment_scores[self.current_step - self.window_size]
+        else:
+            sentiment_score = 0  # If sentiment_scores is empty, assign a default value of 0
 
         return state, sentiment_score
 
